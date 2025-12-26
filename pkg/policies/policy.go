@@ -19,7 +19,7 @@ type Policy struct {
 	Resource   string               `json:"resource"`
 	ResourceID string               `json:"resource_id"`
 	Effect     Effect               `json:"effect"`
-	Conditions []PolicyCondition    `json:"conditions"`
+	Condition  PolicyCondition      `json:"condition"`
 	Version    string               `json:"version"`
 	DryRun     bool                 `json:"dry_run"`
 	Period     *timerange.TimeRange `json:"period"`

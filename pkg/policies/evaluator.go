@@ -1,29 +1,60 @@
 package policies
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
-type EvaluatorRegisty map[OperatorKind]Engine
+type PolicyRepository interface {
+	FindByResourceAndResourceID(ctx context.Context, resource, resourceID string) ([]Policy, error)
+}
+
+type EvaluatorRequest struct {
+	Resource   string
+	ResourceID string
+	Context    MapAttributes
+}
+
+type Evaluator interface {
+	Eval(ctx context.Context, req EvaluatorRequest) error
+}
 
 type evaluator struct {
-	reg EvaluatorRegisty
+	eng  Engine
+	repo PolicyRepository
 }
 
-func NewEvaluator(reg EvaluatorRegisty) *evaluator {
+func NewEvaluator(eng Engine, repo PolicyRepository) Evaluator {
 	return &evaluator{
-		reg: reg,
+		eng:  eng,
+		repo: repo,
 	}
 }
 
-func (e *evaluator) Eval(cond PolicyCondition, ctx AttributeResolver) (bool, error) {
-	spec, ok := OperatorSpecOf(cond.Operator)
-	if !ok {
-		return false, fmt.Errorf("unknown operator: %s", cond.Operator)
+func (e *evaluator) Eval(ctx context.Context, req EvaluatorRequest) error {
+	pols, err := e.repo.FindByResourceAndResourceID(ctx, req.Resource, req.ResourceID)
+	if err != nil {
+		return err
 	}
 
-	handler, ok := e.reg[spec.Kind]
-	if !ok {
-		return false, fmt.Errorf("no handler for operator kind %v", spec.Kind)
-	}
+	for _, pol := range pols {
+		ok, err := e.eng.Eval(pol.Condition, req.Context)
+		if err != nil {
+			return err
+		}
 
-	return handler.Eval(cond, ctx)
+		allowed := ok
+		if pol.Effect == EffectDeny {
+			allowed = !allowed
+		}
+
+		if pol.DryRun {
+			return nil
+		}
+
+		if !allowed {
+			return fmt.Errorf("execution is dained")
+		}
+	}
+	return nil
 }
