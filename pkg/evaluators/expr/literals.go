@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// Literal returns a JSON literal representation of v suitable for embedding
+// in an expression built by the expr engine.
 func Literal(v any) (string, error) {
 	b, err := json.Marshal(v)
 	if err != nil {

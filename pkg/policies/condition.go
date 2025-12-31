@@ -2,6 +2,10 @@ package policies
 
 import "fmt"
 
+// PolicyCondition represents a condition used in a policy. It is either
+// a leaf condition (defined by Attribute, Operator and Value) or a logical
+// compound condition containing child Conditions (used for operators like
+// "and", "or" and "not").
 type PolicyCondition struct {
 	Attribute  string            `json:"attribute"`
 	Operator   Operator          `json:"operator"`
@@ -9,6 +13,10 @@ type PolicyCondition struct {
 	Conditions []PolicyCondition `json:"conditions"`
 }
 
+// Validate verifies that the condition is well-formed for the configured
+// operator. It checks operator existence, arity for logical operators and
+// presence of Attribute/Value for non-logical operators and validates
+// child conditions recursively.
 func (c PolicyCondition) Validate() error {
 	spec, ok := OperatorSpecOf(c.Operator)
 	if !ok {

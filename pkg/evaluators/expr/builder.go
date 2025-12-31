@@ -6,7 +6,9 @@ import (
 	"github.com/tavaresphil/go-policy-engine/pkg/policies"
 )
 
-// ExprHandler translates a PolicyCondition into an expr-lang expression fragment.
+// ExprBuilder translates a PolicyCondition into an expr-lang expression fragment.
+// Implementations produce a string expression fragment that can be combined into
+// a full expression for the expr language.
 type ExprBuilder interface {
 	Build(cond policies.PolicyCondition) (string, error)
 }
@@ -60,9 +62,11 @@ func (h *exprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	return builder.Build(cond)
 }
 
+// LogicalExprBuilder builds logical expressions (and/or/not) for the expr language.
 type LogicalExprBuilder struct {
 }
 
+// Build builds a logical expression for cond.
 func (h *LogicalExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	if len(cond.Conditions) == 0 {
 		return "", fmt.Errorf("logical operator %s requires conditions", cond.Operator)
@@ -97,11 +101,11 @@ func (h *LogicalExprBuilder) Build(cond policies.PolicyCondition) (string, error
 		parts = append(parts, fmt.Sprintf("(%s)", expr))
 	}
 
-	return fmt.Sprintf("%s", joinWithOperator(parts, op)), nil
+	return joinWithOperator(parts, op), nil
 }
 
 func joinWithOperator(parts []string, op string) string {
-	return fmt.Sprintf("%s", stringJoin(parts, " "+op+" "))
+	return stringJoin(parts, " "+op+" ")
 }
 
 func stringJoin(parts []string, sep string) string {
@@ -115,9 +119,11 @@ func stringJoin(parts []string, sep string) string {
 	return result
 }
 
+// ComparisonExprBuilder builds comparison expressions (==, !=, <, >, etc.).
 type ComparisonExprBuilder struct {
 }
 
+// Build builds a comparison expression for cond.
 func (h *ComparisonExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	// Exemplo: attribute == value
 	// Ajuste para o operador correto
@@ -143,8 +149,10 @@ func (h *ComparisonExprBuilder) Build(cond policies.PolicyCondition) (string, er
 	return fmt.Sprintf("%s %s %v", cond.Attribute, op, cond.Value), nil
 }
 
+// ArithmeticExprBuilder builds arithmetic expressions (currently mod).
 type ArithmeticExprBuilder struct{}
 
+// Build builds an arithmetic expression for cond.
 func (h *ArithmeticExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	if cond.Operator != policies.OpMod {
 		return "", fmt.Errorf("unsupported arithmetic operator: %s", cond.Operator)
@@ -153,8 +161,10 @@ func (h *ArithmeticExprBuilder) Build(cond policies.PolicyCondition) (string, er
 	return fmt.Sprintf("(%s %% %v)", cond.Attribute, cond.Value), nil
 }
 
+// SetExprBuilder builds set membership expressions.
 type SetExprBuilder struct{}
 
+// Build builds a set expression for cond.
 func (h *SetExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	var op string
 	switch cond.Operator {
@@ -181,8 +191,10 @@ func (h *SetExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	return fmt.Sprintf("%s %s [%s]", cond.Attribute, op, stringJoin(valStrs, ", ")), nil
 }
 
+// FunctionExprBuilder builds string/function expressions (contains, startsWith, etc.).
 type FunctionExprBuilder struct{}
 
+// Build builds a function expression for cond.
 func (h *FunctionExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	switch cond.Operator {
 	case policies.OpContains:
@@ -200,8 +212,10 @@ func (h *FunctionExprBuilder) Build(cond policies.PolicyCondition) (string, erro
 	}
 }
 
+// TemporalExprBuilder builds temporal comparison expressions (before/after).
 type TemporalExprBuilder struct{}
 
+// Build builds a temporal expression for cond.
 func (h *TemporalExprBuilder) Build(cond policies.PolicyCondition) (string, error) {
 	var op string
 	switch cond.Operator {

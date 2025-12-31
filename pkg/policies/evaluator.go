@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+type Engine interface {
+	Eval(cond PolicyCondition, ctx Resolver) (bool, error)
+}
+
 type PolicyRepository interface {
 	FindByResourceAndResourceID(ctx context.Context, resource, resourceID string) ([]Policy, error)
 }
@@ -15,6 +19,8 @@ type EvaluatorRequest struct {
 	Context    MapAttributes
 }
 
+// Evaluator is a higher level component that retrieves policies from a
+// repository and executes them using an Engine against a request context.
 type Evaluator interface {
 	Eval(ctx context.Context, req EvaluatorRequest) error
 }
@@ -24,6 +30,7 @@ type evaluator struct {
 	repo PolicyRepository
 }
 
+// NewEvaluator constructs a new Evaluator from an Engine and a PolicyRepository.
 func NewEvaluator(eng Engine, repo PolicyRepository) Evaluator {
 	return &evaluator{
 		eng:  eng,

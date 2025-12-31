@@ -3,7 +3,6 @@ package expr
 import (
 	"fmt"
 
-	"github.com/expr-lang/expr"
 	exprlang "github.com/expr-lang/expr"
 	"github.com/tavaresphil/go-policy-engine/pkg/policies"
 )
@@ -18,7 +17,7 @@ func NewEngine() policies.Engine {
 	}
 }
 
-func (e *engine) Eval(cond policies.PolicyCondition, ctx policies.AttributeResolver) (bool, error) {
+func (e *engine) Eval(cond policies.PolicyCondition, ctx policies.Resolver) (bool, error) {
 	if err := cond.Validate(); err != nil {
 		return false, fmt.Errorf("invalid condition: %w", err)
 	}
@@ -28,12 +27,12 @@ func (e *engine) Eval(cond policies.PolicyCondition, ctx policies.AttributeResol
 		return false, fmt.Errorf("failed to build expression: %w", err)
 	}
 
-	program, err := exprlang.Compile(exprStr, exprlang.Env(ctx), expr.AsBool())
+	program, err := exprlang.Compile(exprStr, exprlang.Env(ctx), exprlang.AsBool())
 	if err != nil {
 		return false, fmt.Errorf("failed compile expression: %w", err)
 	}
 
-	res, err := expr.Run(program, ctx)
+	res, err := exprlang.Run(program, ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed run expression: %w", err)
 	}
